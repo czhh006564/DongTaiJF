@@ -100,8 +100,11 @@
 ## 技术架构
 
 ### 技术栈
-- **后端**：Python语言
-- **前端**：Node.js, HTML, JavaScript, HTML5
+- **后端**：Python + FastAPI
+- **前端**：Vue.js 3 + Vue Router + Pinia + Element Plus
+- **数据库**：SQLAlchemy ORM + SQLite（开发）/ PostgreSQL（生产）
+- **AI服务**：通义千问API（默认）+ 多模型支持（DeepSeek、ChatGPT等）
+- **认证**：JWT Token + bcrypt密码加密
 - **应用类型**：Web应用（所有端）
 - **未来规划**：支持微信小程序
 
@@ -109,6 +112,217 @@
 - **AI大模型**：全面使用AI大模型，对AI可使用的场景能用尽用
 - **数据库**：存储多角色数据、游戏化数据、详细学习记录
 - **报告生成**：AI生成个性化学习分析报告
+- **权限系统**：5角色权限体系（学生、家长、老师、机构、超级管理员）
+- **安全机制**：API密钥加密存储、操作审计日志、跨域安全配置
+
+## 项目结构
+
+```
+DongTaiJF/
+├── backend/                    # Python后端项目
+│   ├── app.py                 # FastAPI主应用入口
+│   ├── models/                # 数据模型层
+│   │   ├── database.py        # 数据库配置和连接
+│   │   ├── user.py           # 用户相关模型
+│   │   ├── config.py         # 系统配置模型
+│   │   ├── exercise.py       # 练习题目模型
+│   │   ├── gamification.py   # 游戏化系统模型
+│   │   └── __init__.py       # 模型初始化
+│   ├── routes/               # API路由层
+│   │   ├── auth.py          # 认证相关路由
+│   │   ├── user.py          # 用户管理路由
+│   │   ├── ai.py            # AI功能路由
+│   │   ├── exercise.py      # 练习题目路由
+│   │   ├── admin.py         # 超级管理员路由
+│   │   └── __init__.py      # 路由初始化
+│   ├── services/            # 业务逻辑层
+│   │   └── ai_service.py    # AI服务封装
+│   ├── utils/               # 工具函数
+│   │   └── security.py      # 安全相关工具
+│   └── .env.example         # 环境配置示例
+├── frontend/                # Vue.js前端项目
+│   ├── src/
+│   │   ├── components/      # Vue组件
+│   │   │   ├── student/     # 学生端组件
+│   │   │   ├── parent/      # 家长端组件
+│   │   │   ├── teacher/     # 老师端组件
+│   │   │   ├── institution/ # 机构端组件
+│   │   │   └── admin/       # 超级管理员组件
+│   │   ├── views/          # 页面视图
+│   │   │   ├── auth/       # 认证页面
+│   │   │   ├── student/    # 学生端页面
+│   │   │   ├── parent/     # 家长端页面
+│   │   │   ├── teacher/    # 老师端页面
+│   │   │   ├── institution/# 机构端页面
+│   │   │   └── admin/      # 管理员页面
+│   │   ├── router/         # 路由配置
+│   │   │   └── index.js    # 路由定义和权限控制
+│   │   ├── stores/         # Pinia状态管理
+│   │   │   └── user.js     # 用户状态管理
+│   │   ├── utils/          # 工具函数
+│   │   │   └── api.js      # API请求封装
+│   │   ├── styles/         # 样式文件
+│   │   │   ├── variables.scss # SCSS变量
+│   │   │   └── index.scss  # 全局样式
+│   │   ├── App.vue         # 根组件
+│   │   └── main.js         # 应用入口
+│   ├── public/             # 静态文件
+│   │   └── index.html      # HTML模板
+│   ├── package.json        # 前端依赖配置
+│   └── vue.config.js       # Vue配置文件
+├── requirements.txt         # Python依赖配置
+├── start.bat               # 一键启动脚本
+├── 开发步骤规划.md          # 详细开发计划
+├── 第一阶段完成报告.md      # 第一阶段完成总结
+└── README.md               # 项目说明文档
+```
+
+## 数据库设计
+
+### 核心数据表
+- **users**: 用户表（支持5种角色）
+- **roles_permissions**: 角色权限表
+- **error_records**: 错题记录表
+- **exercises**: 练习题目表
+- **questions**: 题目详情表
+- **learning_reports**: 学习报告表
+
+### 系统配置表
+- **ai_model_configs**: AI模型配置表
+- **system_configs**: 系统配置表
+- **system_logs**: 系统日志表
+- **audit_logs**: 操作审计表
+
+### 游戏化系统表
+- **user_game_data**: 用户游戏数据表
+- **badges**: 徽章表
+- **user_badges**: 用户徽章关联表
+- **daily_tasks**: 每日任务表
+- **user_daily_tasks**: 用户任务完成记录表
+- **points_transactions**: 积分交易记录表
+
+## 快速开始
+
+### 环境要求
+- **Python**: 3.8+
+- **Node.js**: 16+
+- **数据库**: SQLite（开发）/ PostgreSQL（生产）
+
+### 一键启动
+```bash
+# Windows系统
+start.bat
+
+# 手动启动
+# 1. 启动后端服务
+cd backend
+python -m venv venv
+venv\Scripts\activate
+pip install -r ../requirements.txt
+python app.py
+
+# 2. 启动前端服务
+cd ../frontend
+npm install
+npm run serve
+```
+
+### 访问地址
+- **前端应用**: http://localhost:8080
+- **后端API**: http://localhost:8000
+- **API文档**: http://localhost:8000/docs
+
+### 依赖管理策略
+
+#### 核心依赖（requirements.txt）
+为确保在不同环境下的兼容性，我们采用了分层依赖管理：
+
+**✅ 核心依赖（已包含）**：
+- Web框架：FastAPI + Uvicorn
+- 数据库：SQLAlchemy + Alembic
+- AI集成：OpenAI兼容API
+- 安全认证：JWT + bcrypt密码加密
+- 数据验证：Pydantic
+
+**🔄 可选依赖（按需安装）**：
+```bash
+# 图像处理功能（OCR、图片批阅）
+pip install pillow opencv-python
+
+# PDF生成功能（练习题导出）
+pip install reportlab weasyprint
+
+# 跨域支持（生产环境）
+pip install fastapi-cors
+```
+
+#### 故障排除
+
+**问题1：Pillow安装失败**
+```bash
+# Windows解决方案
+pip install --upgrade pip
+pip install pillow --only-binary=pillow
+
+# 或使用conda
+conda install pillow
+```
+
+**问题2：编码问题**
+- 确保控制台支持UTF-8编码
+- start.bat已自动设置编码
+
+**问题3：端口占用**
+```bash
+# 检查端口占用
+netstat -ano | findstr :8000
+netstat -ano | findstr :8080
+
+# 终止占用进程
+taskkill /PID <进程ID> /F
+```
+
+### 环境配置
+1. 复制 `backend/.env.example` 为 `backend/.env`
+2. 配置AI模型API密钥：
+   ```env
+   # 通义千问配置（默认）
+   TONGYI_API_KEY=your-tongyi-api-key
+   TONGYI_API_ENDPOINT=https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation
+   
+   # DeepSeek配置（可选）
+   DEEPSEEK_API_KEY=your-deepseek-api-key
+   DEEPSEEK_API_ENDPOINT=https://api.deepseek.com/v1/chat/completions
+   ```
+
+## 核心功能特色
+
+### 🎯 多角色权限系统
+- **学生端**: 作业批阅、动态练习、学习报告、游戏化激励
+- **家长端**: 学习监督、进度查看、提醒设置
+- **老师端**: 班级管理、学生分析、作业布置
+- **机构端**: 多班级管理、教学统计、效果分析
+- **超级管理员**: 系统配置、用户管理、AI模型配置
+
+### 🤖 AI模型配置系统
+- **默认模型**: 通义千问（阿里云）
+- **多模型支持**: DeepSeek、ChatGPT、其他大模型
+- **灵活配置**: 超级管理员可配置API密钥和参数
+- **使用统计**: 模型调用次数和性能监控
+- **安全存储**: API密钥加密存储
+
+### 🎮 游戏化激励系统
+- **积分系统**: 完成练习获得积分，积分可用于兑换奖励
+- **等级系统**: 积分累积升级，解锁更多功能
+- **徽章系统**: 达成特定目标获得徽章认证
+- **每日任务**: 个性化每日学习任务
+- **连续学习**: 连续学习天数统计和奖励
+
+### 📊 智能数据分析
+- **错题分析**: AI分析错题模式，识别知识薄弱点
+- **学习报告**: 个性化学习进度和能力分析报告
+- **知识图谱**: 知识点掌握情况可视化
+- **进度追踪**: 学习轨迹和进步趋势分析
 
 ## 商业模式
 
