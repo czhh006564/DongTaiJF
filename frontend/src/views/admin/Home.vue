@@ -1,5 +1,6 @@
 <template>
   <div class="admin-home">
+    <NavigationBar />
     <div class="welcome-section">
       <h1>系统管理中心</h1>
       <p>全面管理系统运行状态</p>
@@ -72,9 +73,13 @@
 
 <script>
 import { ref, onMounted } from 'vue'
+import NavigationBar from '@/components/NavigationBar.vue'
 
 export default {
   name: 'AdminHome',
+  components: {
+    NavigationBar
+  },
   setup() {
     const stats = ref({
       totalUsers: 0,

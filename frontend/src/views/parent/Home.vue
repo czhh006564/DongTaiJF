@@ -1,5 +1,6 @@
 <template>
   <div class="parent-home">
+    <NavigationBar />
     <div class="welcome-section">
       <h1>家长中心</h1>
       <p>关注孩子学习，助力成长每一步</p>
@@ -193,9 +194,13 @@
 <script>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import NavigationBar from '@/components/NavigationBar.vue'
 
 export default {
   name: 'ParentHome',
+  components: {
+    NavigationBar
+  },
   setup() {
     const router = useRouter()
     

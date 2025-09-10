@@ -1,5 +1,6 @@
 <template>
   <div class="student-home">
+    <NavigationBar />
     <div class="welcome-section">
       <h1>欢迎回来，{{ userStore.user?.username }}！</h1>
       <p>今天也要努力学习哦～</p>
@@ -81,9 +82,13 @@
 <script>
 import { ref, onMounted } from 'vue'
 import { useUserStore } from '@/stores/user'
+import NavigationBar from '@/components/NavigationBar.vue'
 
 export default {
   name: 'StudentHome',
+  components: {
+    NavigationBar
+  },
   setup() {
     const userStore = useUserStore()
     

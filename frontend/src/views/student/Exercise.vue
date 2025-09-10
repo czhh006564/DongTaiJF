@@ -1,5 +1,6 @@
 <template>
   <div class="exercise-container">
+    <NavigationBar />
     <div class="exercise-header">
       <h1>智能练习</h1>
       <div class="exercise-config">
@@ -147,9 +148,13 @@
 <script>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import NavigationBar from '@/components/NavigationBar.vue'
 
 export default {
   name: 'StudentExercise',
+  components: {
+    NavigationBar
+  },
   setup() {
     const router = useRouter()
     

@@ -1,5 +1,6 @@
 <template>
   <div class="teacher-home">
+    <NavigationBar />
     <div class="welcome-section">
       <h1>教师工作台</h1>
       <p>管理班级，关注学生成长</p>
@@ -72,9 +73,13 @@
 
 <script>
 import { ref, onMounted } from 'vue'
+import NavigationBar from '@/components/NavigationBar.vue'
 
 export default {
   name: 'TeacherHome',
+  components: {
+    NavigationBar
+  },
   setup() {
     const stats = ref({
       totalStudents: 0,
