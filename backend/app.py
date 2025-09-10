@@ -32,7 +32,14 @@ app = FastAPI(
 # 配置CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8080", "http://127.0.0.1:8080"],  # Vue.js开发服务器
+    allow_origins=[
+        "http://localhost:8080", 
+        "http://127.0.0.1:8080",
+        "http://localhost:8081", 
+        "http://127.0.0.1:8081",
+        "http://localhost:8082", 
+        "http://127.0.0.1:8082"
+    ],  # Vue.js开发服务器
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -57,6 +64,10 @@ async def root():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "message": "系统运行正常"}
+
+@app.get("/api/health")
+async def api_health_check():
+    return {"status": "healthy", "message": "API服务运行正常"}
 
 if __name__ == "__main__":
     uvicorn.run(

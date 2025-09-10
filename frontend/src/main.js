@@ -14,9 +14,12 @@ import '@/styles/index.scss'
 // 创建应用实例
 const app = createApp(App)
 
-// 注册Element Plus图标
+// 注册Element Plus图标 - 过滤无效的组件名
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
-  app.component(key, component)
+  // 确保key是有效的组件名称（以字母开头，不包含数字开头）
+  if (typeof key === 'string' && /^[A-Za-z]/.test(key)) {
+    app.component(key, component)
+  }
 }
 
 // 使用插件

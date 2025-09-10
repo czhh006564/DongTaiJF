@@ -4,7 +4,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from typing import Optional
-from jose import jwt
+from jose import jwt, JWTError
 import os
 
 from models.database import get_db
@@ -28,6 +28,7 @@ class UserCreate(BaseModel):
     username: str
     email: str
     password: str
+    real_name: str
     role: UserRole = UserRole.STUDENT
 
 class UserLogin(BaseModel):
@@ -60,7 +61,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
-    except jwt.JWTError:
+    except JWTError:
         raise credentials_exception
     
     user = db.query(User).filter(User.username == username).first()
@@ -90,6 +91,7 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
     db_user = User(
         username=user_data.username,
         email=user_data.email,
+        real_name=user_data.real_name,
         hashed_password=hashed_password,
         role=user_data.role,
         is_active=True
@@ -102,11 +104,11 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
     return db_user
 
 # 用户登录
-@router.post("/login", response_model=Token)
-async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.username == form_data.username).first()
+@router.post("/login")
+async def login(login_data: UserLogin, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.username == login_data.username).first()
     
-    if not user or not verify_password(form_data.password, user.hashed_password):
+    if not user or not verify_password(login_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
@@ -124,7 +126,18 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
         data={"sub": user.username}, expires_delta=access_token_expires
     )
     
-    return {"access_token": access_token, "token_type": "bearer"}
+    # 返回用户信息和token
+    return {
+        "access_token": access_token, 
+        "token_type": "bearer",
+        "user_info": {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "role": user.role.value,
+            "is_active": user.is_active
+        }
+    }
 
 # 获取当前用户信息
 @router.get("/me", response_model=UserResponse)

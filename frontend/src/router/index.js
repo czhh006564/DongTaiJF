@@ -2,9 +2,10 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 
 // 路由组件懒加载
-const Login = () => import('@/views/auth/Login.vue')
+const Login = () => import('@/views/auth/Login-simple.vue')
 const Register = () => import('@/views/auth/Register.vue')
 const Dashboard = () => import('@/views/Dashboard.vue')
+const TestLogin = () => import('@/views/TestLogin.vue')
 
 // 学生端路由
 const StudentHome = () => import('@/views/student/Home.vue')
@@ -48,6 +49,12 @@ const routes = [
     path: '/register',
     name: 'Register',
     component: Register,
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/test-login',
+    name: 'TestLogin',
+    component: TestLogin,
     meta: { requiresAuth: false }
   },
   {

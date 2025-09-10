@@ -1,5 +1,4 @@
 import axios from 'axios'
-import { ElMessage } from 'element-plus'
 
 // 创建axios实例
 const api = axios.create({
@@ -45,28 +44,27 @@ api.interceptors.response.use(
           // 未授权，清除token并跳转到登录页
           localStorage.removeItem('token')
           localStorage.removeItem('userInfo')
-          ElMessage.error('登录已过期，请重新登录')
-          // 如果不在登录页面，则跳转到登录页
-          if (window.location.pathname !== '/login') {
+          // 只在非登录页面时跳转，避免循环跳转
+          if (window.location.pathname !== '/login' && window.location.pathname !== '/test-login') {
             window.location.href = '/login'
           }
           break
         case 403:
-          ElMessage.error('没有权限访问该资源')
+          console.error('没有权限访问该资源')
           break
         case 404:
-          ElMessage.error('请求的资源不存在')
+          console.error('请求的资源不存在')
           break
         case 500:
-          ElMessage.error('服务器内部错误')
+          console.error('服务器内部错误')
           break
         default:
-          ElMessage.error(response.data?.detail || '请求失败')
+          console.error(response.data?.detail || '请求失败')
       }
     } else if (error.code === 'ECONNABORTED') {
-      ElMessage.error('请求超时，请稍后重试')
+      console.error('请求超时，请稍后重试')
     } else {
-      ElMessage.error('网络错误，请检查网络连接')
+      console.error('网络错误，请检查网络连接')
     }
     
     return Promise.reject(error)
