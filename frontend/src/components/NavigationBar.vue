@@ -105,10 +105,25 @@ const switchRole = () => {
 }
 
 // 退出登录
-const handleLogout = () => {
-  if (confirm('确定要退出登录吗？')) {
+const handleLogout = async () => {
+  try {
+    console.log('开始退出登录...')
+    
+    // 直接执行退出登录，不使用confirm对话框
     userStore.logout()
-    router.push('/login')
+    console.log('用户store logout完成')
+    
+    // 强制跳转到登录页
+    await router.push('/login')
+    console.log('路由跳转完成')
+    
+    // 刷新页面确保完全清除状态
+    window.location.href = '/login'
+    
+  } catch (error) {
+    console.error('退出登录失败:', error)
+    // 即使出错也强制跳转
+    window.location.href = '/login'
   }
 }
 

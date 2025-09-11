@@ -27,16 +27,24 @@ export const useUserStore = defineStore('user', () => {
   const login = async (credentials) => {
     try {
       const response = await api.post('/auth/login', credentials)
-      const { access_token, user_info } = response.data
+      console.log('登录响应:', response.data)
       
-      setToken(access_token)
-      setUserInfo(user_info)
+      // 兼容不同的响应格式
+      const { access_token, user_info, user } = response.data
+      const userInfoData = user_info || user
       
-      return { success: true, data: response.data }
+      if (access_token && userInfoData) {
+        setToken(access_token)
+        setUserInfo(userInfoData)
+        return { success: true, data: response.data }
+      } else {
+        throw new Error('响应数据格式错误')
+      }
     } catch (error) {
+      console.error('登录错误:', error)
       return { 
         success: false, 
-        message: error.response?.data?.detail || '登录失败' 
+        message: error.response?.data?.detail || error.message || '登录失败' 
       }
     }
   }

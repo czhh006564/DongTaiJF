@@ -1,97 +1,115 @@
 <template>
-  <div class="admin-ai-config">
-    <div class="config-header">
-      <h1>AI模型配置</h1>
-      <p>管理系统使用的AI模型和参数</p>
-    </div>
+  <div class="ai-config">
+    <NavigationBar />
     
-    <div class="config-content">
-      <!-- 默认模型设置 -->
-      <div class="config-section">
-        <h2>默认模型设置</h2>
-        <div class="config-card">
-          <div class="form-group">
-            <label>默认AI模型</label>
-            <select v-model="defaultConfig.model">
-              <option value="tongyi">通义千问</option>
-              <option value="deepseek">DeepSeek</option>
-              <option value="gpt-3.5">GPT-3.5</option>
-              <option value="gpt-4">GPT-4</option>
-            </select>
+    <div class="container">
+      <div class="header">
+        <h1>AI模型配置管理</h1>
+        <p>管理系统中的AI模型配置和API密钥</p>
+      </div>
+
+      <!-- 当前模型状态 -->
+      <div class="current-status">
+        <h2>当前模型状态</h2>
+        <div class="status-grid">
+          <div class="status-card">
+            <div class="status-icon">🤖</div>
+            <div class="status-info">
+              <h3>默认模型</h3>
+              <p>{{ defaultModel?.display_name || '未设置' }}</p>
+            </div>
           </div>
-          
-          <div class="form-group">
-            <label>API端点</label>
-            <input v-model="defaultConfig.apiEndpoint" type="url" placeholder="https://api.example.com" />
+          <div class="status-card">
+            <div class="status-icon">📊</div>
+            <div class="status-info">
+              <h3>总调用次数</h3>
+              <p>{{ totalUsage.toLocaleString() }}</p>
+            </div>
           </div>
-          
-          <div class="form-group">
-            <label>API密钥</label>
-            <input v-model="defaultConfig.apiKey" type="password" placeholder="输入API密钥" />
-          </div>
-          
-          <div class="form-group">
-            <label>最大Token数</label>
-            <input v-model.number="defaultConfig.maxTokens" type="number" min="100" max="4000" />
-          </div>
-          
-          <div class="form-group">
-            <label>温度参数</label>
-            <input v-model.number="defaultConfig.temperature" type="number" min="0" max="2" step="0.1" />
-          </div>
-          
-          <div class="form-actions">
-            <button @click="saveDefaultConfig" :disabled="saving" class="save-btn">
-              {{ saving ? '保存中...' : '保存默认配置' }}
-            </button>
-            <button @click="testConnection" :disabled="testing" class="test-btn">
-              {{ testing ? '测试中...' : '测试连接' }}
-            </button>
+          <div class="status-card">
+            <div class="status-icon">⚡</div>
+            <div class="status-info">
+              <h3>活跃模型</h3>
+              <p>{{ activeModels.length }} 个</p>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- 模型列表 -->
-      <div class="config-section">
-        <h2>可用模型列表</h2>
-        <div class="models-grid">
+      <!-- 模型配置列表 -->
+      <div class="models-section">
+        <div class="section-header">
+          <h2>AI模型配置</h2>
+          <button @click="showAddModal = true" class="btn-add">
+            ➕ 添加模型
+          </button>
+        </div>
+
+        <div class="models-list">
           <div 
-            v-for="model in availableModels" 
+            v-for="model in models" 
             :key="model.id"
             class="model-card"
-            :class="{ active: model.id === defaultConfig.model }"
+            :class="{ 'default': model.is_default, 'inactive': !model.is_active }"
           >
             <div class="model-header">
-              <h3>{{ model.name }}</h3>
-              <span class="model-status" :class="model.status">
-                {{ model.status === 'active' ? '可用' : '不可用' }}
-              </span>
+              <div class="model-info">
+                <h3>{{ model.display_name }}</h3>
+                <span class="model-name">{{ model.model_name }}</span>
+              </div>
+              <div class="model-badges">
+                <span v-if="model.is_default" class="badge default">默认</span>
+                <span v-if="model.is_active" class="badge active">活跃</span>
+                <span v-else class="badge inactive">停用</span>
+              </div>
             </div>
-            
-            <div class="model-info">
-              <p><strong>提供商:</strong> {{ model.provider }}</p>
-              <p><strong>类型:</strong> {{ model.type }}</p>
-              <p><strong>最大Token:</strong> {{ model.maxTokens }}</p>
-              <p><strong>费用:</strong> {{ model.pricing }}</p>
+
+            <div class="model-details">
+              <div class="detail-item">
+                <span class="label">API端点:</span>
+                <span class="value">{{ model.api_endpoint }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="label">使用次数:</span>
+                <span class="value">{{ model.usage_count.toLocaleString() }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="label">最后使用:</span>
+                <span class="value">{{ formatDate(model.last_used) }}</span>
+              </div>
             </div>
-            
-            <div class="model-description">
-              <p>{{ model.description }}</p>
-            </div>
-            
+
             <div class="model-actions">
               <button 
-                @click="setAsDefault(model)" 
-                :disabled="model.status !== 'active'"
-                class="set-default-btn"
+                @click="editModel(model)" 
+                class="btn-edit"
+                title="编辑配置"
               >
-                设为默认
+                ✏️ 编辑
               </button>
               <button 
-                @click="configureModel(model)" 
-                class="config-btn"
+                @click="toggleModelStatus(model)" 
+                class="btn-toggle"
+                :class="{ 'activate': !model.is_active, 'deactivate': model.is_active }"
+                :title="model.is_active ? '停用模型' : '启用模型'"
               >
-                配置
+                {{ model.is_active ? '🔴 停用' : '🟢 启用' }}
+              </button>
+              <button 
+                @click="setDefaultModel(model)" 
+                class="btn-default"
+                :disabled="model.is_default || !model.is_active"
+                title="设为默认"
+              >
+                ⭐ 设为默认
+              </button>
+              <button 
+                @click="testModel(model)" 
+                class="btn-test"
+                :disabled="!model.is_active || testingModel === model.id"
+                title="测试连接"
+              >
+                {{ testingModel === model.id ? '⏳ 测试中' : '🧪 测试' }}
               </button>
             </div>
           </div>
@@ -99,66 +117,144 @@
       </div>
 
       <!-- 使用统计 -->
-      <div class="config-section">
+      <div class="usage-stats">
         <h2>使用统计</h2>
         <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-icon">📊</div>
-            <div class="stat-content">
-              <h3>{{ stats.totalCalls }}</h3>
-              <p>总调用次数</p>
-            </div>
+          <div class="stat-item">
+            <h4>今日调用</h4>
+            <p class="stat-number">{{ dailyStats.calls }}</p>
           </div>
-          
-          <div class="stat-card">
-            <div class="stat-icon">💰</div>
-            <div class="stat-content">
-              <h3>¥{{ stats.totalCost }}</h3>
-              <p>总费用</p>
-            </div>
+          <div class="stat-item">
+            <h4>本月调用</h4>
+            <p class="stat-number">{{ monthlyStats.calls }}</p>
           </div>
-          
-          <div class="stat-card">
-            <div class="stat-icon">⚡</div>
-            <div class="stat-content">
-              <h3>{{ stats.avgResponseTime }}ms</h3>
-              <p>平均响应时间</p>
-            </div>
+          <div class="stat-item">
+            <h4>成功率</h4>
+            <p class="stat-number">{{ successRate }}%</p>
           </div>
-          
-          <div class="stat-card">
-            <div class="stat-icon">✅</div>
-            <div class="stat-content">
-              <h3>{{ stats.successRate }}%</h3>
-              <p>成功率</p>
-            </div>
+          <div class="stat-item">
+            <h4>平均响应时间</h4>
+            <p class="stat-number">{{ avgResponseTime }}ms</p>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 模型配置弹窗 -->
-    <div v-if="showConfigModal" class="modal-overlay" @click="closeConfigModal">
+    <!-- 添加/编辑模型弹窗 -->
+    <div v-if="showAddModal || editingModel" class="modal-overlay" @click="closeModal">
       <div class="modal-content" @click.stop>
-        <h3>配置 {{ selectedModel?.name }}</h3>
-        <form @submit.prevent="saveModelConfig">
+        <div class="modal-header">
+          <h3>{{ editingModel ? '编辑模型配置' : '添加新模型' }}</h3>
+          <button @click="closeModal" class="btn-close">✕</button>
+        </div>
+
+        <form @submit.prevent="saveModel" class="model-form">
           <div class="form-group">
-            <label>API端点</label>
-            <input v-model="modelConfig.apiEndpoint" type="url" required />
+            <label for="displayName">显示名称</label>
+            <input 
+              type="text" 
+              id="displayName" 
+              v-model="modelForm.display_name" 
+              placeholder="例如：通义千问"
+              required
+            >
           </div>
+
           <div class="form-group">
-            <label>API密钥</label>
-            <input v-model="modelConfig.apiKey" type="password" required />
+            <label for="modelName">模型名称</label>
+            <input 
+              type="text" 
+              id="modelName" 
+              v-model="modelForm.model_name" 
+              placeholder="例如：qwen-turbo"
+              required
+            >
           </div>
+
           <div class="form-group">
-            <label>最大Token数</label>
-            <input v-model.number="modelConfig.maxTokens" type="number" min="100" max="8000" />
+            <label for="apiEndpoint">API端点</label>
+            <input 
+              type="url" 
+              id="apiEndpoint" 
+              v-model="modelForm.api_endpoint" 
+              placeholder="https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation"
+              required
+            >
           </div>
-          <div class="modal-actions">
-            <button type="submit" :disabled="savingModel" class="save-btn">
-              {{ savingModel ? '保存中...' : '保存配置' }}
+
+          <div class="form-group">
+            <label for="apiKey">API密钥</label>
+            <div class="api-key-input">
+              <input 
+                :type="showApiKey ? 'text' : 'password'" 
+                id="apiKey" 
+                v-model="modelForm.api_key" 
+                placeholder="输入API密钥"
+                required
+              >
+              <button 
+                type="button" 
+                @click="showApiKey = !showApiKey"
+                class="btn-toggle-key"
+              >
+                {{ showApiKey ? '🙈' : '👁️' }}
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="maxTokens">最大Token数</label>
+            <input 
+              type="number" 
+              id="maxTokens" 
+              v-model.number="modelForm.max_tokens" 
+              min="1" 
+              max="32000"
+              placeholder="2000"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="temperature">温度参数</label>
+            <input 
+              type="number" 
+              id="temperature" 
+              v-model.number="modelForm.temperature" 
+              min="0" 
+              max="2" 
+              step="0.1"
+              placeholder="0.7"
+            >
+          </div>
+
+          <div class="form-checkboxes">
+            <label class="checkbox-label">
+              <input 
+                type="checkbox" 
+                v-model="modelForm.is_active"
+              >
+              <span class="checkmark"></span>
+              启用此模型
+            </label>
+
+            <label class="checkbox-label">
+              <input 
+                type="checkbox" 
+                v-model="modelForm.is_default"
+                :disabled="!modelForm.is_active"
+              >
+              <span class="checkmark"></span>
+              设为默认模型
+            </label>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" @click="closeModal" class="btn-cancel">
+              取消
             </button>
-            <button type="button" @click="closeConfigModal" class="cancel-btn">取消</button>
+            <button type="submit" class="btn-save" :disabled="isSaving">
+              {{ isSaving ? '保存中...' : '保存' }}
+            </button>
           </div>
         </form>
       </div>
@@ -167,420 +263,511 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
+import NavigationBar from '@/components/NavigationBar.vue'
+import api from '@/utils/api'
 
 export default {
-  name: 'AdminAIConfig',
+  name: 'AIConfig',
+  components: {
+    NavigationBar
+  },
   setup() {
-    const defaultConfig = ref({
-      model: 'tongyi',
-      apiEndpoint: '',
-      apiKey: '',
-      maxTokens: 2000,
-      temperature: 0.7
+    // 数据状态
+    const models = ref([])
+    const showAddModal = ref(false)
+    const editingModel = ref(null)
+    const showApiKey = ref(false)
+    const isSaving = ref(false)
+    const testingModel = ref(null)
+    
+    // 统计数据
+    const dailyStats = ref({ calls: 0 })
+    const monthlyStats = ref({ calls: 0 })
+    const successRate = ref(0)
+    const avgResponseTime = ref(0)
+    
+    // 表单数据
+    const modelForm = ref({
+      display_name: '',
+      model_name: '',
+      api_endpoint: '',
+      api_key: '',
+      max_tokens: 2000,
+      temperature: 0.7,
+      is_active: true,
+      is_default: false
     })
     
-    const availableModels = ref([])
-    const stats = ref({})
-    const saving = ref(false)
-    const testing = ref(false)
-    const showConfigModal = ref(false)
-    const selectedModel = ref(null)
-    const modelConfig = ref({})
-    const savingModel = ref(false)
+    // 计算属性
+    const defaultModel = computed(() => {
+      return models.value.find(model => model.is_default)
+    })
     
-    const loadConfig = async () => {
-      // 模拟加载配置
-      defaultConfig.value = {
-        model: 'tongyi',
-        apiEndpoint: 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation',
-        apiKey: '****',
-        maxTokens: 2000,
-        temperature: 0.7
+    const activeModels = computed(() => {
+      return models.value.filter(model => model.is_active)
+    })
+    
+    const totalUsage = computed(() => {
+      return models.value.reduce((total, model) => total + (model.usage_count || 0), 0)
+    })
+    
+    // 方法
+    const loadModels = async () => {
+      try {
+        const response = await api.get('/api/admin/ai-models')
+        models.value = response.data.models || []
+      } catch (error) {
+        console.error('加载模型配置失败:', error)
+        alert('加载模型配置失败')
       }
+    }
+    
+    const loadStats = async () => {
+      try {
+        const response = await api.get('/api/admin/ai-stats')
+        const stats = response.data
+        dailyStats.value = stats.daily || { calls: 0 }
+        monthlyStats.value = stats.monthly || { calls: 0 }
+        successRate.value = stats.success_rate || 0
+        avgResponseTime.value = stats.avg_response_time || 0
+      } catch (error) {
+        console.error('加载统计数据失败:', error)
+      }
+    }
+    
+    const editModel = (model) => {
+      editingModel.value = model
+      modelForm.value = {
+        display_name: model.display_name,
+        model_name: model.model_name,
+        api_endpoint: model.api_endpoint,
+        api_key: '', // 不显示现有密钥
+        max_tokens: model.max_tokens || 2000,
+        temperature: model.temperature || 0.7,
+        is_active: model.is_active,
+        is_default: model.is_default
+      }
+      showApiKey.value = false
+    }
+    
+    const closeModal = () => {
+      showAddModal.value = false
+      editingModel.value = null
+      resetForm()
+    }
+    
+    const resetForm = () => {
+      modelForm.value = {
+        display_name: '',
+        model_name: '',
+        api_endpoint: '',
+        api_key: '',
+        max_tokens: 2000,
+        temperature: 0.7,
+        is_active: true,
+        is_default: false
+      }
+      showApiKey.value = false
+    }
+    
+    const saveModel = async () => {
+      isSaving.value = true
       
-      availableModels.value = [
-        {
-          id: 'tongyi',
-          name: '通义千问',
-          provider: '阿里云',
-          type: '大语言模型',
-          maxTokens: 6000,
-          pricing: '¥0.008/1K tokens',
-          description: '阿里云自研的大规模语言模型，支持中文对话和文本生成',
-          status: 'active'
-        },
-        {
-          id: 'deepseek',
-          name: 'DeepSeek',
-          provider: 'DeepSeek',
-          type: '大语言模型',
-          maxTokens: 4000,
-          pricing: '¥0.001/1K tokens',
-          description: '高性价比的大语言模型，适合大规模应用',
-          status: 'active'
-        },
-        {
-          id: 'gpt-3.5',
-          name: 'GPT-3.5 Turbo',
-          provider: 'OpenAI',
-          type: '大语言模型',
-          maxTokens: 4000,
-          pricing: '¥0.015/1K tokens',
-          description: 'OpenAI的经典模型，性能稳定可靠',
-          status: 'inactive'
-        },
-        {
-          id: 'gpt-4',
-          name: 'GPT-4',
-          provider: 'OpenAI',
-          type: '大语言模型',
-          maxTokens: 8000,
-          pricing: '¥0.21/1K tokens',
-          description: 'OpenAI最先进的模型，理解能力更强',
-          status: 'inactive'
+      try {
+        if (editingModel.value) {
+          // 更新现有模型
+          await api.put(`/api/admin/ai-models/${editingModel.value.id}`, modelForm.value)
+        } else {
+          // 创建新模型
+          await api.post('/api/admin/ai-models', modelForm.value)
         }
-      ]
+        
+        await loadModels()
+        closeModal()
+        alert(editingModel.value ? '模型配置更新成功' : '模型配置添加成功')
+      } catch (error) {
+        console.error('保存模型配置失败:', error)
+        alert('保存失败: ' + (error.response?.data?.detail || error.message))
+      } finally {
+        isSaving.value = false
+      }
+    }
+    
+    const toggleModelStatus = async (model) => {
+      try {
+        await api.patch(`/api/admin/ai-models/${model.id}/toggle`)
+        await loadModels()
+      } catch (error) {
+        console.error('切换模型状态失败:', error)
+        alert('操作失败')
+      }
+    }
+    
+    const setDefaultModel = async (model) => {
+      try {
+        await api.patch(`/api/admin/ai-models/${model.id}/set-default`)
+        await loadModels()
+      } catch (error) {
+        console.error('设置默认模型失败:', error)
+        alert('设置失败')
+      }
+    }
+    
+    const testModel = async (model) => {
+      testingModel.value = model.id
       
-      stats.value = {
-        totalCalls: 8900,
-        totalCost: 156.78,
-        avgResponseTime: 1250,
-        successRate: 98.5
-      }
-    }
-    
-    const saveDefaultConfig = async () => {
-      saving.value = true
       try {
-        // 模拟保存配置
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        alert('默认配置保存成功！')
+        const response = await api.post(`/api/admin/ai-models/${model.id}/test`)
+        if (response.data.success) {
+          alert('模型测试成功！响应时间: ' + response.data.response_time + 'ms')
+        } else {
+          alert('模型测试失败: ' + response.data.error)
+        }
       } catch (error) {
-        alert('保存失败：' + error.message)
+        console.error('测试模型失败:', error)
+        alert('测试失败: ' + (error.response?.data?.detail || error.message))
       } finally {
-        saving.value = false
+        testingModel.value = null
       }
     }
     
-    const testConnection = async () => {
-      testing.value = true
-      try {
-        // 模拟测试连接
-        await new Promise(resolve => setTimeout(resolve, 2000))
-        alert('连接测试成功！')
-      } catch (error) {
-        alert('连接测试失败：' + error.message)
-      } finally {
-        testing.value = false
-      }
+    const formatDate = (dateString) => {
+      if (!dateString) return '从未使用'
+      return new Date(dateString).toLocaleString('zh-CN')
     }
     
-    const setAsDefault = (model) => {
-      defaultConfig.value.model = model.id
-      alert(`已将 ${model.name} 设为默认模型`)
-    }
-    
-    const configureModel = (model) => {
-      selectedModel.value = model
-      modelConfig.value = {
-        apiEndpoint: '',
-        apiKey: '',
-        maxTokens: model.maxTokens
-      }
-      showConfigModal.value = true
-    }
-    
-    const closeConfigModal = () => {
-      showConfigModal.value = false
-      selectedModel.value = null
-      modelConfig.value = {}
-    }
-    
-    const saveModelConfig = async () => {
-      savingModel.value = true
-      try {
-        // 模拟保存模型配置
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        alert(`${selectedModel.value.name} 配置保存成功！`)
-        closeConfigModal()
-      } catch (error) {
-        alert('保存失败：' + error.message)
-      } finally {
-        savingModel.value = false
-      }
-    }
-    
+    // 生命周期
     onMounted(() => {
-      loadConfig()
+      loadModels()
+      loadStats()
     })
     
     return {
-      defaultConfig,
-      availableModels,
-      stats,
-      saving,
-      testing,
-      showConfigModal,
-      selectedModel,
-      modelConfig,
-      savingModel,
-      saveDefaultConfig,
-      testConnection,
-      setAsDefault,
-      configureModel,
-      closeConfigModal,
-      saveModelConfig
+      models,
+      showAddModal,
+      editingModel,
+      showApiKey,
+      isSaving,
+      testingModel,
+      dailyStats,
+      monthlyStats,
+      successRate,
+      avgResponseTime,
+      modelForm,
+      defaultModel,
+      activeModels,
+      totalUsage,
+      editModel,
+      closeModal,
+      saveModel,
+      toggleModelStatus,
+      setDefaultModel,
+      testModel,
+      formatDate
     }
   }
 }
 </script>
 
 <style scoped>
-.admin-ai-config {
-  padding: 1.5rem;
+.ai-config {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.container {
   max-width: 1200px;
   margin: 0 auto;
+  padding: 20px;
 }
 
-.config-header {
+.header {
   text-align: center;
-  margin-bottom: 2rem;
+  color: white;
+  margin-bottom: 30px;
 }
 
-.config-header h1 {
-  margin-bottom: 0.5rem;
-  color: #333;
+.header h1 {
+  font-size: 2.5rem;
+  margin-bottom: 10px;
 }
 
-.config-header p {
-  color: #666;
+.header p {
+  font-size: 1.1rem;
+  opacity: 0.9;
 }
 
-.config-section {
-  margin-bottom: 3rem;
-}
-
-.config-section h2 {
-  margin-bottom: 1rem;
-  color: #333;
-  border-bottom: 2px solid #007bff;
-  padding-bottom: 0.5rem;
-}
-
-.config-card {
+.current-status {
   background: white;
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 15px;
+  padding: 25px;
+  margin-bottom: 30px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
 
-.form-group {
-  margin-bottom: 1.5rem;
+.current-status h2 {
+  color: #333;
+  margin-bottom: 20px;
 }
 
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  color: #555;
-  font-weight: 500;
-}
-
-.form-group input,
-.form-group select {
-  width: 100%;
-  max-width: 400px;
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
-}
-
-.form-group input:focus,
-.form-group select:focus {
-  outline: none;
-  border-color: #007bff;
-}
-
-.form-actions {
-  display: flex;
-  gap: 1rem;
-  margin-top: 2rem;
-}
-
-.save-btn, .test-btn, .set-default-btn, .config-btn {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: background-color 0.2s;
-}
-
-.save-btn {
-  background-color: #28a745;
-  color: white;
-}
-
-.save-btn:hover:not(:disabled) {
-  background-color: #218838;
-}
-
-.test-btn {
-  background-color: #007bff;
-  color: white;
-}
-
-.test-btn:hover:not(:disabled) {
-  background-color: #0056b3;
-}
-
-.save-btn:disabled, .test-btn:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
-}
-
-.models-grid {
+.status-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.status-card {
+  display: flex;
+  align-items: center;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  border-left: 4px solid #667eea;
+}
+
+.status-icon {
+  font-size: 2rem;
+  margin-right: 15px;
+}
+
+.status-info h3 {
+  font-size: 1.5rem;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.status-info p {
+  color: #666;
+  margin: 0;
+}
+
+.models-section {
+  background: white;
+  border-radius: 15px;
+  padding: 25px;
+  margin-bottom: 30px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+.section-header h2 {
+  color: #333;
+  margin: 0;
+}
+
+.btn-add {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.3s;
+}
+
+.btn-add:hover {
+  transform: translateY(-2px);
+}
+
+.models-list {
+  display: grid;
+  gap: 20px;
 }
 
 .model-card {
-  background: white;
-  padding: 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 2px solid transparent;
-  transition: border-color 0.2s;
+  border: 2px solid #e1e5e9;
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.3s;
 }
 
-.model-card.active {
-  border-color: #007bff;
+.model-card:hover {
+  border-color: #667eea;
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.1);
+}
+
+.model-card.default {
+  border-color: #ffd700;
+  background: linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%);
+}
+
+.model-card.inactive {
+  opacity: 0.6;
+  background: #f8f9fa;
 }
 
 .model-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
+  align-items: flex-start;
+  margin-bottom: 15px;
 }
 
-.model-header h3 {
-  margin: 0;
+.model-info h3 {
   color: #333;
+  margin-bottom: 5px;
 }
 
-.model-status {
-  padding: 0.25rem 0.5rem;
+.model-name {
+  color: #666;
+  font-family: monospace;
+  background: #f1f3f4;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.model-badges {
+  display: flex;
+  gap: 8px;
+}
+
+.badge {
+  padding: 4px 12px;
   border-radius: 12px;
   font-size: 0.8rem;
-  font-weight: 500;
+  font-weight: 600;
 }
 
-.model-status.active {
-  background-color: #d4edda;
+.badge.default {
+  background: #ffd700;
+  color: #b8860b;
+}
+
+.badge.active {
+  background: #d4edda;
   color: #155724;
 }
 
-.model-status.inactive {
-  background-color: #f8d7da;
+.badge.inactive {
+  background: #f8d7da;
   color: #721c24;
 }
 
-.model-info {
-  margin-bottom: 1rem;
+.model-details {
+  margin-bottom: 20px;
 }
 
-.model-info p {
-  margin: 0.25rem 0;
-  color: #666;
-  font-size: 0.9rem;
+.detail-item {
+  display: flex;
+  margin-bottom: 8px;
 }
 
-.model-description {
-  margin-bottom: 1rem;
+.detail-item .label {
+  font-weight: 600;
+  color: #555;
+  min-width: 100px;
 }
 
-.model-description p {
-  margin: 0;
-  color: #666;
-  font-size: 0.9rem;
-  line-height: 1.4;
+.detail-item .value {
+  color: #333;
+  word-break: break-all;
 }
 
 .model-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
-.set-default-btn {
-  background-color: #007bff;
-  color: white;
+.model-actions button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 15px;
   font-size: 0.9rem;
-  padding: 0.5rem 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
 }
 
-.set-default-btn:hover:not(:disabled) {
-  background-color: #0056b3;
+.btn-edit {
+  background: #17a2b8;
+  color: white;
 }
 
-.set-default-btn:disabled {
-  background-color: #ccc;
+.btn-toggle.activate {
+  background: #28a745;
+  color: white;
+}
+
+.btn-toggle.deactivate {
+  background: #dc3545;
+  color: white;
+}
+
+.btn-default {
+  background: #ffc107;
+  color: #212529;
+}
+
+.btn-test {
+  background: #6f42c1;
+  color: white;
+}
+
+.model-actions button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+}
+
+.model-actions button:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
-.config-btn {
-  background-color: #6c757d;
-  color: white;
-  font-size: 0.9rem;
-  padding: 0.5rem 1rem;
+.usage-stats {
+  background: white;
+  border-radius: 15px;
+  padding: 25px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
 
-.config-btn:hover {
-  background-color: #545b62;
+.usage-stats h2 {
+  color: #333;
+  margin-bottom: 20px;
 }
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 20px;
 }
 
-.stat-card {
-  background: white;
-  padding: 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  display: flex;
-  align-items: center;
-  gap: 1rem;
+.stat-item {
+  text-align: center;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 10px;
 }
 
-.stat-icon {
-  font-size: 2rem;
-}
-
-.stat-content h3 {
-  margin: 0;
-  font-size: 1.5rem;
-  color: #333;
-}
-
-.stat-content p {
-  margin: 0.25rem 0 0 0;
+.stat-item h4 {
   color: #666;
+  margin-bottom: 10px;
   font-size: 0.9rem;
 }
 
-/* 弹窗样式 */
+.stat-number {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #667eea;
+  margin: 0;
+}
+
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -589,47 +776,159 @@ export default {
 
 .modal-content {
   background: white;
-  padding: 2rem;
-  border-radius: 8px;
+  border-radius: 15px;
+  padding: 0;
   max-width: 500px;
   width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
-.modal-content h3 {
-  margin: 0 0 1.5rem 0;
-  color: #333;
-}
-
-.modal-actions {
+.modal-header {
   display: flex;
-  gap: 1rem;
-  margin-top: 1.5rem;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 25px;
+  border-bottom: 1px solid #e1e5e9;
 }
 
-.cancel-btn {
-  padding: 0.75rem 1.5rem;
-  background-color: #6c757d;
-  color: white;
+.modal-header h3 {
+  color: #333;
+  margin: 0;
+}
+
+.btn-close {
+  background: none;
   border: none;
-  border-radius: 4px;
+  font-size: 1.5rem;
   cursor: pointer;
-  font-size: 1rem;
+  color: #666;
 }
 
-.cancel-btn:hover {
-  background-color: #545b62;
+.model-form {
+  padding: 25px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #555;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #e1e5e9;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.3s;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.api-key-input {
+  position: relative;
+}
+
+.btn-toggle-key {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+}
+
+.form-checkboxes {
+  margin-bottom: 25px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  margin-right: 10px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 15px;
+  justify-content: flex-end;
+}
+
+.btn-cancel,
+.btn-save {
+  padding: 12px 25px;
+  border: none;
+  border-radius: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-cancel {
+  background: #6c757d;
+  color: white;
+}
+
+.btn-save {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.btn-cancel:hover,
+.btn-save:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.btn-save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 @media (max-width: 768px) {
-  .form-actions {
+  .container {
+    padding: 10px;
+  }
+  
+  .header h1 {
+    font-size: 2rem;
+  }
+  
+  .section-header {
     flex-direction: column;
+    gap: 15px;
+    align-items: stretch;
   }
   
   .model-actions {
-    flex-direction: column;
+    justify-content: center;
   }
   
-  .modal-actions {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .modal-content {
+    width: 95%;
+  }
+  
+  .form-actions {
     flex-direction: column;
   }
 }

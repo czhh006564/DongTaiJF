@@ -5,17 +5,20 @@ module.exports = defineConfig({
   
   // 开发服务器配置
   devServer: {
-    port: 8082,
+    port: 8084,
     host: 'localhost',
     open: true,
     // 代理API请求到后端
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:8000',
+        target: 'http://localhost:8000',
         changeOrigin: true,
         ws: true,
         secure: false,
-        logLevel: 'debug'
+        logLevel: 'debug',
+        pathRewrite: {
+          '^/api': ''
+        }
       }
     }
   },

@@ -83,25 +83,36 @@ const handleLogin = async () => {
       alert('登录成功')
       
       // 根据用户角色跳转到对应页面
-      const userRole = result.data.user_info.role
-      switch (userRole) {
-        case 'student':
-          router.push('/student/home')
-          break
-        case 'parent':
-          router.push('/parent/home')
-          break
-        case 'teacher':
-          router.push('/teacher/home')
-          break
-        case 'institution':
-          router.push('/institution/home')
-          break
-        case 'super_admin':
-          router.push('/admin/home')
-          break
-        default:
-          router.push('/dashboard')
+      // 兼容不同的数据结构
+      const userData = result.data.user_info || result.data.user || userStore.userInfo
+      const userRole = userData?.role
+      
+      console.log('用户数据:', userData)
+      console.log('用户角色:', userRole)
+      
+      if (userRole) {
+        switch (userRole) {
+          case 'student':
+            router.push('/student/home')
+            break
+          case 'parent':
+            router.push('/parent/home')
+            break
+          case 'teacher':
+            router.push('/teacher/home')
+            break
+          case 'institution':
+            router.push('/institution/home')
+            break
+          case 'super_admin':
+            router.push('/admin/home')
+            break
+          default:
+            router.push('/dashboard')
+        }
+      } else {
+        console.error('无法获取用户角色信息')
+        router.push('/dashboard')
       }
     } else {
       alert(result.message || '登录失败')
