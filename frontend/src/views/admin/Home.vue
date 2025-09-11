@@ -49,7 +49,7 @@
           <p>管理系统用户</p>
         </router-link>
         
-        <router-link to="/admin/aiconfig" class="action-card">
+        <router-link to="/admin/ai-config" class="action-card">
           <div class="action-icon">🤖</div>
           <h3>AI配置</h3>
           <p>配置AI模型参数</p>
