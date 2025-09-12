@@ -12,6 +12,7 @@ const StudentHome = () => import('@/views/student/Home.vue')
 const StudentExercise = () => import('@/views/student/Exercise.vue')
 const StudentReport = () => import('@/views/student/Report.vue')
 const StudentProfile = () => import('@/views/student/Profile.vue')
+const StudentPhotoCorrection = () => import('@/views/student/PhotoCorrection.vue')
 
 // 家长端路由
 const ParentHome = () => import('@/views/parent/Home.vue')
@@ -90,6 +91,11 @@ const routes = [
         path: 'profile',
         name: 'StudentProfile',
         component: StudentProfile
+      },
+      {
+        path: 'photo-correction',
+        name: 'StudentPhotoCorrection',
+        component: StudentPhotoCorrection
       }
     ]
   },

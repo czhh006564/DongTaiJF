@@ -1,5 +1,6 @@
 <template>
   <div class="report-container">
+    <NavigationBarSafe />
     <div class="report-header">
       <h1>学习报告</h1>
       <div class="time-filter">
@@ -185,9 +186,13 @@
 <script>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import NavigationBarSafe from '@/components/NavigationBar-Safe.vue'
 
 export default {
   name: 'StudentReport',
+  components: {
+    NavigationBarSafe
+  },
   setup() {
     const router = useRouter()
     

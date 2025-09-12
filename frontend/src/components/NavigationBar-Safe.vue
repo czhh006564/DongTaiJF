@@ -9,7 +9,7 @@
     
     <div class="nav-right">
       <!-- 返回首页 -->
-      <button @click.prevent="goHome" class="nav-button home-btn" type="button">
+      <button @click="goHome" class="nav-button home-btn" type="button">
         <span>🏠</span>
         返回首页
       </button>
@@ -26,7 +26,7 @@
       </div>
       
       <!-- 退出登录 -->
-      <button @click.prevent="handleLogout" class="nav-button logout-btn" type="button">
+      <button @click="handleLogout" class="nav-button logout-btn" type="button">
         <span>🚪</span>
         退出登录
       </button>
@@ -34,149 +34,170 @@
   </div>
 </template>
 
-<script>
-import { ref, computed, onMounted } from 'vue'
+<script setup>
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 
-export default {
-  name: 'NavigationBarSafe',
-  setup() {
-    const router = useRouter()
-    const userStore = useUserStore()
-    
-    // 当前视图角色
-    const currentViewRole = ref('')
-    
-    // 安全的用户信息获取
-    const safeUserInfo = computed(() => {
-      try {
-        const info = userStore.userInfo
-        return info && typeof info === 'object' ? info : null
-      } catch (error) {
-        console.warn('获取用户信息失败:', error)
-        return null
-      }
-    })
-    
-    // 获取角色显示名称
-    const getRoleDisplayName = (role) => {
-      const roleMap = {
-        'student': '学生',
-        'parent': '家长', 
-        'teacher': '教师',
-        'institution': '机构管理员',
-        'super_admin': '超级管理员'
-      }
-      return roleMap[role] || role || '未知'
+const router = useRouter()
+const userStore = useUserStore()
+
+// 当前视图角色（用于超级管理员角色切换）
+const currentViewRole = ref('')
+
+// 安全的用户信息获取
+const safeUserInfo = computed(() => {
+  try {
+    if (!userStore || typeof userStore.userInfo === 'undefined') {
+      return null
+    }
+    return userStore.userInfo
+  } catch (error) {
+    console.warn('获取用户信息失败:', error)
+    return null
+  }
+})
+
+// 获取角色显示名称
+const getRoleDisplayName = (role) => {
+  if (!role) return '未知角色'
+  
+  const roleMap = {
+    'student': '学生',
+    'parent': '家长', 
+    'teacher': '教师',
+    'institution': '机构管理员',
+    'super_admin': '超级管理员'
+  }
+  return roleMap[role] || role
+}
+
+// 安全的路由导航
+const safeNavigate = async (path) => {
+  try {
+    if (!router) {
+      window.location.href = path
+      return
     }
     
-    // 返回首页
-    const goHome = () => {
-      try {
-        const role = currentViewRole.value || safeUserInfo.value?.role
-        let targetPath = '/dashboard'
-        
-        switch (role) {
-          case 'student':
-            targetPath = '/student/home'
-            break
-          case 'parent':
-            targetPath = '/parent/home'
-            break
-          case 'teacher':
-            targetPath = '/teacher/home'
-            break
-          case 'institution':
-            targetPath = '/institution/home'
-            break
-          case 'super_admin':
-            targetPath = '/admin/home'
-            break
-        }
-        
-        router.push(targetPath).catch(error => {
-          console.error('路由跳转失败:', error)
-          window.location.href = targetPath
-        })
-      } catch (error) {
-        console.error('导航错误:', error)
-        window.location.href = '/dashboard'
-      }
+    await nextTick()
+    await router.push(path)
+  } catch (error) {
+    console.error('路由导航失败:', error)
+    // 降级处理
+    window.location.href = path
+  }
+}
+
+// 返回首页
+const goHome = async () => {
+  try {
+    const role = currentViewRole.value || safeUserInfo.value?.role
+    let targetPath = '/dashboard'
+    
+    switch (role) {
+      case 'student':
+        targetPath = '/student/home'
+        break
+      case 'parent':
+        targetPath = '/parent/home'
+        break
+      case 'teacher':
+        targetPath = '/teacher/home'
+        break
+      case 'institution':
+        targetPath = '/institution/home'
+        break
+      case 'super_admin':
+        targetPath = '/admin/home'
+        break
     }
     
-    // 角色切换
-    const switchRole = () => {
-      try {
-        const targetRole = currentViewRole.value
-        let targetPath = '/admin/home'
-        
-        switch (targetRole) {
-          case 'student':
-            targetPath = '/student/home'
-            break
-          case 'parent':
-            targetPath = '/parent/home'
-            break
-          case 'teacher':
-            targetPath = '/teacher/home'
-            break
-          case 'institution':
-            targetPath = '/institution/home'
-            break
-          case 'super_admin':
-            targetPath = '/admin/home'
-            break
-        }
-        
-        router.push(targetPath).catch(error => {
-          console.error('角色切换失败:', error)
-          window.location.href = targetPath
-        })
-      } catch (error) {
-        console.error('角色切换错误:', error)
-        window.location.href = '/admin/home'
-      }
+    await safeNavigate(targetPath)
+  } catch (error) {
+    console.error('返回首页失败:', error)
+    window.location.href = '/dashboard'
+  }
+}
+
+// 角色切换（仅超级管理员）
+const switchRole = async () => {
+  try {
+    const targetRole = currentViewRole.value
+    let targetPath = '/admin/home'
+    
+    switch (targetRole) {
+      case 'student':
+        targetPath = '/student/home'
+        break
+      case 'parent':
+        targetPath = '/parent/home'
+        break
+      case 'teacher':
+        targetPath = '/teacher/home'
+        break
+      case 'institution':
+        targetPath = '/institution/home'
+        break
+      case 'super_admin':
+        targetPath = '/admin/home'
+        break
     }
     
-    // 退出登录
-    const handleLogout = () => {
-      try {
-        console.log('开始退出登录...')
-        
-        userStore.logout()
-        console.log('用户store logout完成')
-        
-        // 直接使用window.location进行跳转，避免路由问题
-        window.location.href = '/login'
-        
-      } catch (error) {
-        console.error('退出登录失败:', error)
-        // 强制跳转
-        window.location.href = '/login'
-      }
+    await safeNavigate(targetPath)
+  } catch (error) {
+    console.error('角色切换失败:', error)
+    window.location.href = '/admin/home'
+  }
+}
+
+// 退出登录
+const handleLogout = async () => {
+  try {
+    console.log('开始退出登录...')
+    
+    // 安全地执行退出登录
+    if (userStore && typeof userStore.logout === 'function') {
+      userStore.logout()
     }
     
-    // 初始化
-    onMounted(() => {
+    // 清除本地存储
+    try {
+      localStorage.clear()
+      sessionStorage.clear()
+    } catch (e) {
+      console.warn('清除存储失败:', e)
+    }
+    
+    // 强制跳转到登录页
+    window.location.href = '/login'
+    
+  } catch (error) {
+    console.error('退出登录失败:', error)
+    // 即使出错也强制跳转
+    window.location.href = '/login'
+  }
+}
+
+// 安全的初始化
+onMounted(async () => {
+  try {
+    await nextTick()
+    
+    // 等待一小段时间确保所有组件都已渲染
+    setTimeout(() => {
       try {
         currentViewRole.value = safeUserInfo.value?.role || ''
       } catch (error) {
-        console.warn('NavigationBar初始化警告:', error)
+        console.warn('初始化角色失败:', error)
         currentViewRole.value = ''
       }
-    })
+    }, 100)
     
-    return {
-      currentViewRole,
-      safeUserInfo,
-      getRoleDisplayName,
-      goHome,
-      switchRole,
-      handleLogout
-    }
+  } catch (error) {
+    console.warn('NavigationBar初始化失败:', error)
   }
-}
+})
 </script>
 
 <style scoped>
@@ -191,18 +212,21 @@ export default {
   position: sticky;
   top: 0;
   z-index: 1000;
+  min-height: 60px;
 }
 
 .nav-left {
   display: flex;
   align-items: center;
   gap: 16px;
+  flex: 1;
 }
 
 .app-title {
   margin: 0;
   font-size: 20px;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .user-info {
@@ -211,12 +235,17 @@ export default {
   background: rgba(255, 255, 255, 0.1);
   padding: 4px 12px;
   border-radius: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
 }
 
 .nav-right {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-shrink: 0;
 }
 
 .nav-button {
@@ -229,6 +258,8 @@ export default {
   font-size: 14px;
   cursor: pointer;
   transition: all 0.2s;
+  white-space: nowrap;
+  min-height: 36px;
 }
 
 .home-btn {
@@ -261,6 +292,7 @@ export default {
   color: #333;
   font-size: 14px;
   cursor: pointer;
+  min-width: 150px;
 }
 
 .role-select:focus {
@@ -273,6 +305,7 @@ export default {
     flex-direction: column;
     gap: 12px;
     padding: 16px;
+    min-height: auto;
   }
   
   .nav-left, .nav-right {
@@ -286,11 +319,33 @@ export default {
   
   .user-info {
     font-size: 12px;
+    max-width: none;
   }
   
   .nav-button {
     font-size: 12px;
     padding: 6px 12px;
+  }
+  
+  .role-select {
+    min-width: 120px;
+  }
+}
+
+@media (max-width: 480px) {
+  .nav-left {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .nav-right {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .nav-button {
+    flex: 1;
+    min-width: 100px;
   }
 }
 </style>

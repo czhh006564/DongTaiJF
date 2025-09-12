@@ -49,6 +49,12 @@
           <p>智能推荐练习题目</p>
         </router-link>
         
+        <router-link to="/student/photo-correction" class="action-card">
+          <div class="action-icon">📸</div>
+          <h3>拍照批阅</h3>
+          <p>AI智能批改作业和讲解题目</p>
+        </router-link>
+        
         <router-link to="/student/report" class="action-card">
           <div class="action-icon">📊</div>
           <h3>学习报告</h3>
@@ -102,20 +108,27 @@ export default {
     const recentActivities = ref([
       {
         id: 1,
+        icon: '📸',
+        title: 'AI拍照批阅',
+        description: '上传了数学作业，AI批阅正确率85%',
+        time: '30分钟前'
+      },
+      {
+        id: 2,
         icon: '📝',
         title: '完成数学练习',
         description: '完成了10道代数题目，正确率90%',
         time: '2小时前'
       },
       {
-        id: 2,
+        id: 3,
         icon: '🏆',
         title: '获得成就',
         description: '连续学习7天，获得"坚持不懈"徽章',
         time: '1天前'
       },
       {
-        id: 3,
+        id: 4,
         icon: '📊',
         title: '查看报告',
         description: '查看了本周学习报告',
