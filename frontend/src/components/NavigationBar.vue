@@ -1,19 +1,21 @@
 <template>
-  <div class="navigation-bar">
+  <div class="navigation-bar" ref="navBarRef">
     <div class="nav-left">
       <h2 class="app-title">精准动态教辅</h2>
-      <span class="user-info">{{ userInfo?.real_name || userInfo?.username }} ({{ getRoleDisplayName(userInfo?.role) }})</span>
+      <span class="user-info" v-if="userInfo">
+        {{ userInfo.real_name || userInfo.username }} ({{ getRoleDisplayName(userInfo.role) }})
+      </span>
     </div>
     
     <div class="nav-right">
       <!-- 返回首页 -->
-      <button @click="goHome" class="nav-button home-btn">
+      <button @click="goHome" class="nav-button home-btn" type="button">
         <span>🏠</span>
         返回首页
       </button>
       
       <!-- 角色切换 (仅超级管理员可见) -->
-      <div v-if="userInfo?.role === 'super_admin'" class="role-switch">
+      <div v-if="userInfo && userInfo.role === 'super_admin'" class="role-switch">
         <select @change="switchRole" v-model="currentViewRole" class="role-select">
           <option value="super_admin">超级管理员视图</option>
           <option value="institution">机构管理员视图</option>
@@ -24,7 +26,7 @@
       </div>
       
       <!-- 退出登录 -->
-      <button @click="handleLogout" class="nav-button logout-btn">
+      <button @click="handleLogout" class="nav-button logout-btn" type="button">
         <span>🚪</span>
         退出登录
       </button>
@@ -33,18 +35,28 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
 const userStore = useUserStore()
 
+// DOM引用
+const navBarRef = ref(null)
+
 // 当前视图角色（用于超级管理员角色切换）
 const currentViewRole = ref('')
 
-// 用户信息
-const userInfo = computed(() => userStore.userInfo)
+// 用户信息 - 添加安全检查
+const userInfo = computed(() => {
+  try {
+    return userStore.userInfo || null
+  } catch (error) {
+    console.warn('获取用户信息失败:', error)
+    return null
+  }
+})
 
 // 获取角色显示名称
 const getRoleDisplayName = (role) => {
@@ -59,48 +71,66 @@ const getRoleDisplayName = (role) => {
 }
 
 // 返回首页
-const goHome = () => {
-  const role = currentViewRole.value || userInfo.value?.role
-  switch (role) {
-    case 'student':
-      router.push('/student/home')
-      break
-    case 'parent':
-      router.push('/parent/home')
-      break
-    case 'teacher':
-      router.push('/teacher/home')
-      break
-    case 'institution':
-      router.push('/institution/home')
-      break
-    case 'super_admin':
-      router.push('/admin/home')
-      break
-    default:
-      router.push('/dashboard')
+const goHome = async () => {
+  try {
+    const role = currentViewRole.value || userInfo.value?.role
+    let targetPath = '/dashboard'
+    
+    switch (role) {
+      case 'student':
+        targetPath = '/student/home'
+        break
+      case 'parent':
+        targetPath = '/parent/home'
+        break
+      case 'teacher':
+        targetPath = '/teacher/home'
+        break
+      case 'institution':
+        targetPath = '/institution/home'
+        break
+      case 'super_admin':
+        targetPath = '/admin/home'
+        break
+    }
+    
+    await router.push(targetPath)
+  } catch (error) {
+    console.error('导航错误:', error)
+    // 降级处理
+    window.location.href = '/dashboard'
   }
 }
 
 // 角色切换（仅超级管理员）
-const switchRole = () => {
-  const targetRole = currentViewRole.value
-  switch (targetRole) {
-    case 'student':
-      router.push('/student/home')
-      break
-    case 'parent':
-      router.push('/parent/home')
-      break
-    case 'teacher':
-      router.push('/teacher/home')
-      break
-    case 'institution':
-      router.push('/institution/home')
-      break
-    case 'super_admin':
-      router.push('/admin/home')
-      break
+const switchRole = async () => {
+  try {
+    const targetRole = currentViewRole.value
+    let targetPath = '/admin/home'
+    
+    switch (targetRole) {
+      case 'student':
+        targetPath = '/student/home'
+        break
+      case 'parent':
+        targetPath = '/parent/home'
+        break
+      case 'teacher':
+        targetPath = '/teacher/home'
+        break
+      case 'institution':
+        targetPath = '/institution/home'
+        break
+      case 'super_admin':
+        targetPath = '/admin/home'
+        break
+    }
+    
+    await router.push(targetPath)
+  } catch (error) {
+    console.error('角色切换错误:', error)
+    // 降级处理
+    window.location.href = '/admin/home'
   }
 }
 
@@ -128,8 +158,14 @@ const handleLogout = async () => {
 }
 
 // 初始化当前视图角色
-onMounted(() => {
-  currentViewRole.value = userInfo.value?.role || ''
+onMounted(async () => {
+  await nextTick()
+  try {
+    currentViewRole.value = userInfo.value?.role || ''
+  } catch (error) {
+    console.warn('NavigationBar初始化警告:', error)
+    currentViewRole.value = ''
+  }
 })
 </script>
 

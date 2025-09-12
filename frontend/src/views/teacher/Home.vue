@@ -73,7 +73,7 @@
 
 <script>
 import { ref, onMounted } from 'vue'
-import NavigationBar from '@/components/NavigationBar.vue'
+import NavigationBar from '@/components/NavigationBar-Safe.vue'
 
 export default {
   name: 'TeacherHome',

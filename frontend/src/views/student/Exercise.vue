@@ -4,27 +4,61 @@
     <div class="exercise-header">
       <h1>智能练习</h1>
       <div class="exercise-config">
-        <div class="config-item">
-          <label>题目类型：</label>
-          <select v-model="config.type">
-            <option value="choice">选择题</option>
-            <option value="fill">填空题</option>
-            <option value="solve">解答题</option>
-            <option value="mixed">混合题型</option>
-          </select>
+        <div class="config-row">
+          <div class="config-item">
+            <label>学科：</label>
+            <select v-model="config.subject" required>
+              <option value="">请选择学科</option>
+              <option value="数学">数学</option>
+              <option value="语文">语文</option>
+              <option value="英语">英语</option>
+            </select>
+          </div>
+          <div class="config-item">
+            <label>年级：</label>
+            <select v-model="config.grade" required>
+              <option value="">请选择年级</option>
+              <option value="1年级">1年级</option>
+              <option value="2年级">2年级</option>
+              <option value="3年级">3年级</option>
+              <option value="4年级">4年级</option>
+              <option value="5年级">5年级</option>
+              <option value="6年级">6年级</option>
+              <option value="7年级">7年级</option>
+              <option value="8年级">8年级</option>
+              <option value="9年级">9年级</option>
+            </select>
+          </div>
         </div>
-        <div class="config-item">
-          <label>题目数量：</label>
-          <select v-model="config.count">
-            <option value="5">5题</option>
-            <option value="10">10题</option>
-            <option value="15">15题</option>
-            <option value="20">20题</option>
-          </select>
+        <div class="config-row">
+          <div class="config-item">
+            <label>题目类型：</label>
+            <select v-model="config.type">
+              <option value="choice">选择题</option>
+              <option value="fill">填空题</option>
+              <option value="solve">解答题</option>
+              <option value="mixed">混合题型</option>
+            </select>
+          </div>
+          <div class="config-item">
+            <label>题目数量：</label>
+            <select v-model="config.count">
+              <option value="5">5题</option>
+              <option value="10">10题</option>
+              <option value="15">15题</option>
+              <option value="20">20题</option>
+            </select>
+          </div>
         </div>
-        <button @click="generateExercise" :disabled="loading" class="generate-btn">
-          {{ loading ? '生成中...' : '生成题目' }}
-        </button>
+        <div class="config-row">
+          <button 
+            @click="generateExercise" 
+            :disabled="loading || !canGenerate" 
+            class="generate-btn"
+          >
+            {{ loading ? '🤖 AI正在生成题目...' : '🚀 生成题目' }}
+          </button>
+        </div>
       </div>
     </div>
 
@@ -149,6 +183,16 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import NavigationBar from '@/components/NavigationBar.vue'
+import axios from 'axios'
+
+// 配置API客户端
+const api = axios.create({
+  baseURL: 'http://localhost:8000',
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json'
+  }
+})
 
 export default {
   name: 'StudentExercise',
@@ -159,6 +203,8 @@ export default {
     const router = useRouter()
     
     const config = ref({
+      subject: '数学',
+      grade: '1年级',
       type: 'choice',
       count: '10'
     })
@@ -178,40 +224,138 @@ export default {
       return exercises.value.every((_, index) => userAnswers.value[index])
     })
     
+    const canGenerate = computed(() => {
+      return config.value.subject && config.value.grade
+    })
+    
     const generateExercise = async () => {
+      if (!canGenerate.value) {
+        alert('请先选择学科和年级')
+        return
+      }
+      
       loading.value = true
       try {
-        // 模拟API调用
-        await new Promise(resolve => setTimeout(resolve, 2000))
+        console.log('🎯 开始生成题目...', {
+          subject: config.value.subject,
+          grade: config.value.grade,
+          type: config.value.type,
+          count: config.value.count
+        })
         
-        // 生成模拟题目
-        const mockExercises = []
-        for (let i = 0; i < parseInt(config.value.count); i++) {
-          mockExercises.push({
-            id: i + 1,
+        // 调用AI生成题目
+        const response = await api.post('/api/ai/generate-exercise', {
+          subject: config.value.subject,
+          grade: config.value.grade,
+          question_type: config.value.type,
+          question_count: parseInt(config.value.count),
+          knowledge_points: [`${config.value.grade}年级${config.value.subject}`],
+          difficulty_level: 1
+        })
+        
+        console.log('✅ AI题目生成成功:', response.data)
+        
+        if (response.data.success && response.data.questions) {
+          // 转换AI生成的题目格式
+          const aiExercises = response.data.questions.map((q, index) => ({
+            id: index + 1,
             type: config.value.type === 'mixed' ? ['choice', 'fill', 'solve'][Math.floor(Math.random() * 3)] : config.value.type,
-            question: `这是第${i + 1}道${getTypeText(config.value.type)}题目，请仔细阅读并作答。`,
-            options: config.value.type === 'choice' ? [
-              { key: 'A', text: '选项A的内容' },
-              { key: 'B', text: '选项B的内容' },
-              { key: 'C', text: '选项C的内容' },
-              { key: 'D', text: '选项D的内容' }
-            ] : null,
-            answer: 'A',
-            explanation: '这是题目的详细解析...'
-          })
+            question: q.content || q.question || `${config.value.subject}题目 ${index + 1}`,
+            options: q.options ? q.options.map((opt, i) => ({
+              key: String.fromCharCode(65 + i), // A, B, C, D
+              text: opt
+            })) : (config.value.type === 'choice' ? [
+              { key: 'A', text: '选项A' },
+              { key: 'B', text: '选项B' },
+              { key: 'C', text: '选项C' },
+              { key: 'D', text: '选项D' }
+            ] : null),
+            answer: q.answer || 'A',
+            explanation: q.explanation || '这是题目的详细解析...',
+            knowledge_point: q.knowledge_point || `${config.value.grade}年级${config.value.subject}`,
+            difficulty: q.difficulty || 1
+          }))
+          
+          exercises.value = aiExercises
+          alert(`🎉 成功生成 ${aiExercises.length} 道${config.value.subject}题目！`)
+        } else {
+          throw new Error(response.data.message || 'AI题目生成失败')
         }
         
-        exercises.value = mockExercises
+      } catch (error) {
+        console.error('❌ 题目生成失败:', error)
+        
+        // 如果AI生成失败，使用备用题目
+        const fallbackExercises = generateFallbackQuestions()
+        exercises.value = fallbackExercises
+        
+        // 正确提取错误信息
+        let errorMsg = '网络连接失败'
+        if (error.response?.data?.detail) {
+          errorMsg = error.response.data.detail
+        } else if (error.response?.data?.message) {
+          errorMsg = error.response.data.message
+        } else if (error.message) {
+          errorMsg = error.message
+        } else if (typeof error === 'string') {
+          errorMsg = error
+        }
+        
+        alert(`⚠️ AI生成失败，使用备用题目
+错误: ${errorMsg}`)
+      } finally {
         currentIndex.value = 0
         userAnswers.value = {}
         startTimer()
-        
-      } catch (error) {
-        alert('生成题目失败：' + error.message)
-      } finally {
         loading.value = false
       }
+    }
+    
+    // 生成备用题目
+    const generateFallbackQuestions = () => {
+      const subjectQuestions = {
+        '数学': [
+          { question: `计算：2 + 3 = ?`, options: [
+            { key: 'A', text: '4' }, { key: 'B', text: '5' }, { key: 'C', text: '6' }, { key: 'D', text: '7' }
+          ], answer: 'B' },
+          { question: `计算：8 - 3 = ?`, options: [
+            { key: 'A', text: '4' }, { key: 'B', text: '5' }, { key: 'C', text: '6' }, { key: 'D', text: '7' }
+          ], answer: 'B' },
+          { question: `计算：4 × 2 = ?`, options: [
+            { key: 'A', text: '6' }, { key: 'B', text: '7' }, { key: 'C', text: '8' }, { key: 'D', text: '9' }
+          ], answer: 'C' }
+        ],
+        '语文': [
+          { question: `下列词语中，哪个是形容词？`, options: [
+            { key: 'A', text: '跑步' }, { key: 'B', text: '美丽' }, { key: 'C', text: '吃饭' }, { key: 'D', text: '睡觉' }
+          ], answer: 'B' },
+          { question: `"春眠不觉晓"的下一句是？`, options: [
+            { key: 'A', text: '处处闻啼鸟' }, { key: 'B', text: '夜来风雨声' }, { key: 'C', text: '花落知多少' }, { key: 'D', text: '红掌拨清波' }
+          ], answer: 'A' },
+          { question: `下列哪个字是多音字？`, options: [
+            { key: 'A', text: '山' }, { key: 'B', text: '水' }, { key: 'C', text: '行' }, { key: 'D', text: '火' }
+          ], answer: 'C' }
+        ],
+        '英语': [
+          { question: `"Hello" 的中文意思是？`, options: [
+            { key: 'A', text: '再见' }, { key: 'B', text: '你好' }, { key: 'C', text: '谢谢' }, { key: 'D', text: '对不起' }
+          ], answer: 'B' },
+          { question: `下列哪个是颜色单词？`, options: [
+            { key: 'A', text: 'cat' }, { key: 'B', text: 'red' }, { key: 'C', text: 'run' }, { key: 'D', text: 'book' }
+          ], answer: 'B' },
+          { question: `"apple" 的中文意思是？`, options: [
+            { key: 'A', text: '香蕉' }, { key: 'B', text: '苹果' }, { key: 'C', text: '橙子' }, { key: 'D', text: '葡萄' }
+          ], answer: 'B' }
+        ]
+      }
+      
+      const questions = subjectQuestions[config.value.subject] || subjectQuestions['数学']
+      return questions.slice(0, parseInt(config.value.count)).map((q, index) => ({
+        id: index + 1,
+        type: config.value.type === 'mixed' ? ['choice', 'fill', 'solve'][Math.floor(Math.random() * 3)] : config.value.type,
+        ...q,
+        explanation: `这是${config.value.subject}${config.value.grade}年级的题目解析...`
+      }))
     }
     
     const getTypeText = (type) => {
@@ -317,6 +461,7 @@ export default {
       timeElapsed,
       progress,
       canSubmit,
+      canGenerate,
       generateExercise,
       selectOption,
       nextQuestion,
