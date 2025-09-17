@@ -1,0 +1,5 @@
+Webview errors at url: http://localhost:8085/student/photo-correction
+error: 
+ AI连通性检测失败: [object Object]
+❌ 批阅失败: Error: AI模型连通性检测失败，请检查网络连接和后端服务
+❌ 错误详情: AI模型连通性检测失败，请检查网络连接和后端服务

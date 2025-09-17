@@ -1,0 +1,6 @@
+Webview errors at url: http://localhost:8084/student/photo-correction
+error: 
+ Access to XMLHttpRequest at 'http://localhost:8000/api/ai/test-connection' from origin 'http://localhost:8084' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+AI连通性检测失败: [object Object]
+❌ 批阅失败: Error: AI模型连通性检测失败，请检查网络连接和后端服务
+❌ 错误详情: AI模型连通性检测失败，请检查网络连接和后端服务

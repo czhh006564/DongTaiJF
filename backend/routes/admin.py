@@ -6,6 +6,13 @@ from pydantic import BaseModel
 from datetime import datetime, timedelta
 import json
 
+# 加载环境变量
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 from ..database.database import get_db
 from ..database.models import User, AIModelConfig, Exercise, ErrorRecord
 from .auth import get_current_user

@@ -5,7 +5,7 @@ echo DongTaiJF System Startup Script
 echo ========================================
 
 echo.
-echo [1/6] Checking Python environment...
+echo [1/7] Checking Python environment...
 python --version >nul 2>&1
 if errorlevel 1 (
     echo ERROR: Python not found, please install Python 3.8+
@@ -14,7 +14,7 @@ if errorlevel 1 (
 )
 
 echo.
-echo [2/6] Checking Node.js environment...
+echo [2/7] Checking Node.js environment...
 node --version >nul 2>&1
 if errorlevel 1 (
     echo ERROR: Node.js not found, please install Node.js 16+
@@ -23,7 +23,7 @@ if errorlevel 1 (
 )
 
 echo.
-echo [3/6] Installing backend dependencies...
+echo [3/7] Installing backend dependencies...
 cd backend
 if not exist "venv" (
     echo Creating Python virtual environment...
@@ -37,11 +37,32 @@ echo Installing Python packages...
 pip install -r ../requirements.txt
 
 echo.
-echo [4/6] Initializing database...
+echo [4/7] Initializing database...
 python -c "from models.database import engine, Base; Base.metadata.create_all(bind=engine); print('Database initialized successfully')"
 
 echo.
-echo [5/6] Installing frontend dependencies...
+echo [5/7] Checking AI model connectivity...
+echo Running comprehensive AI connectivity check...
+python check_ai_connectivity.py
+if errorlevel 1 (
+    echo.
+    echo ⚠️ AI connectivity check completed with warnings
+    echo System will continue but AI features may be limited
+    echo.
+    echo 💡 To fix AI issues:
+    echo    1. Copy .env.example to .env
+    echo    2. Configure your API keys in .env file
+    echo    3. Restart the system
+    echo.
+) else (
+    echo.
+    echo ✅ AI connectivity check passed successfully
+    echo All AI features should work properly
+    echo.
+)
+
+echo.
+echo [6/7] Installing frontend dependencies...
 cd ..\frontend
 if not exist "node_modules" (
     echo Installing Node.js packages...
@@ -49,7 +70,7 @@ if not exist "node_modules" (
 )
 
 echo.
-echo [6/6] Starting system services...
+echo [7/7] Starting system services...
 echo ========================================
 
 echo.

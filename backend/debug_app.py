@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # 默认AI配置 - 通义千问视觉模型
 DEFAULT_AI_CONFIG = {
     "provider": "tongyi",
-    "api_key": "sk-b98893a9f7274f64b3b3060771097aba",
+    "api_key": os.getenv('DASHSCOPE_API_KEY', 'your-api-key-not-set'),
     "api_endpoint": "https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation",
     "model_name": "qwen-vl-max",
     "enabled": True

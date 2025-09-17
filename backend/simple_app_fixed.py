@@ -9,13 +9,20 @@ import random
 import httpx
 import json
 
+# 加载环境变量
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 # 添加当前目录到Python路径
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # 默认AI配置 - 通义千问视觉模型
 DEFAULT_AI_CONFIG = {
     "provider": "tongyi",
-    "api_key": "sk-b98893a9f7274f64b3b3060771097aba",
+    "api_key": os.getenv('DASHSCOPE_API_KEY', 'your-api-key-not-set'),
     "api_endpoint": "https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation",
     "model_name": "qwen-vl-max",
     "enabled": True
@@ -24,7 +31,7 @@ DEFAULT_AI_CONFIG = {
 # 文本生成配置 - 用于纯文本任务
 TEXT_AI_CONFIG = {
     "provider": "tongyi",
-    "api_key": "sk-b98893a9f7274f64b3b3060771097aba",
+    "api_key": os.getenv('DASHSCOPE_API_KEY', 'your-api-key-not-set'),
     "api_endpoint": "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation",
     "model_name": "qwen-plus",
     "enabled": True

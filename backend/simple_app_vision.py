@@ -11,11 +11,23 @@ from http import HTTPStatus
 from pydantic import BaseModel
 from typing import List, Dict, Union, Any
 
+# 加载环境变量
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 # --- 配置 ---
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# 统一的API Key配置
-DASHSCOPE_API_KEY = "sk-b98893a9f7274f64b3b3060771097aba"
+# 从环境变量获取API Key配置
+DASHSCOPE_API_KEY = os.getenv('DASHSCOPE_API_KEY')
+if not DASHSCOPE_API_KEY:
+    print("⚠️ WARNING: DASHSCOPE_API_KEY not found in environment variables")
+    print("Please set it in your .env file")
+    DASHSCOPE_API_KEY = "your-api-key-not-set"
+
 dashscope.api_key = DASHSCOPE_API_KEY
 
 # 文本生成模型配置

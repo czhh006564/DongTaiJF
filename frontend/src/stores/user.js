@@ -5,7 +5,22 @@ import api from '@/utils/api'
 export const useUserStore = defineStore('user', () => {
   // 状态
   const token = ref(localStorage.getItem('token') || '')
-  const userInfo = ref(JSON.parse(localStorage.getItem('userInfo') || 'null'))
+  // 安全地解析localStorage中的用户信息
+  const getUserInfoFromStorage = () => {
+    try {
+      const stored = localStorage.getItem('userInfo')
+      if (!stored || stored === 'undefined' || stored === 'null') {
+        return null
+      }
+      return JSON.parse(stored)
+    } catch (error) {
+      console.warn('Failed to parse userInfo from localStorage:', error)
+      localStorage.removeItem('userInfo') // 清除无效数据
+      return null
+    }
+  }
+  
+  const userInfo = ref(getUserInfoFromStorage())
   
   // 计算属性
   const isLoggedIn = computed(() => !!token.value && !!userInfo.value)

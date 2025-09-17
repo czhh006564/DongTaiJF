@@ -2,16 +2,30 @@ import dashscope
 from http import HTTPStatus
 import os
 
+# 加载环境变量
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
+# 加载环境变量
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 def test_qwen_vl_max_connection():
     """
     Tests the connection to the Dashscope qwen-vl-max model.
     """
-    # The user provided the API key: sk-b98893a9f7274f64b3b3060771097aba
-    # It's better to use an environment variable, but for this direct test, we'll use the key.
-    api_key = "sk-b98893a9f7274f64b3b3060771097aba"
+    # 从环境变量获取API密钥
+    api_key = os.getenv('DASHSCOPE_API_KEY')
     if not api_key:
-        print("ERROR: DASHSCOPE_API_KEY is not set.")
-        return
+        print("ERROR: DASHSCOPE_API_KEY environment variable is not set.")
+        print("Please set it in your .env file or system environment.")
+        return False
 
     dashscope.api_key = api_key
 

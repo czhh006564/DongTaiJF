@@ -14,8 +14,20 @@ from pydantic import BaseModel
 from typing import List, Dict, Union, Any
 
 # --- 配置 ---
-# 用户提供的API Key
-DASHSCOPE_API_KEY = "sk-b98893a9f7274f64b3b3060771097aba"
+# 加载环境变量
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
+# 从环境变量获取API Key
+DASHSCOPE_API_KEY = os.getenv('DASHSCOPE_API_KEY')
+if not DASHSCOPE_API_KEY:
+    print("⚠️ WARNING: DASHSCOPE_API_KEY not found in environment variables")
+    print("Please set it in your .env file")
+    DASHSCOPE_API_KEY = "your-api-key-not-set"
+
 dashscope.api_key = DASHSCOPE_API_KEY
 
 # --- FastAPI 应用设置 ---

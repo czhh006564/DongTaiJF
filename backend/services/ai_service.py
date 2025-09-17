@@ -7,6 +7,13 @@ from sqlalchemy.orm import Session
 from database.models import AIModelConfig, AICallLog, User
 import logging
 
+# 加载环境变量
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 logger = logging.getLogger(__name__)
 
 class AIService:
